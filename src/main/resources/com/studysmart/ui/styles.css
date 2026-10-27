@@ -1,0 +1,72 @@
+.root {
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-font-size: 14px;
+    -fx-background-color: #f4f6fa;
+}
+
+.title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.card {
+    -fx-background-color: white;
+    -fx-border-color: #d0d5de;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 14;
+}
+
+.question-heading {
+    -fx-font-weight: bold;
+}
+
+.hint {
+    -fx-text-fill: #6b7280;
+}
+
+.button.primary {
+    -fx-background-color: #ffd966;
+    -fx-border-color: #d4a300;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-font-weight: bold;
+}
+
+.button.primary:hover {
+    -fx-background-color: #ffcf40;
+}
+
+.text-field.invalid {
+    -fx-background-color: #fff3cd;
+    -fx-border-color: #e0a800;
+}
+
+.warning {
+    -fx-background-color: #fff3cd;
+    -fx-text-fill: #7a5c00;
+    -fx-padding: 4 8;
+    -fx-background-radius: 4;
+}
+
+.result-correct {
+    -fx-background-color: #d4edda;
+    -fx-border-color: #28a745;
+}
+
+.result-incorrect {
+    -fx-background-color: #f8d7da;
+    -fx-border-color: #dc3545;
+}
+
+.error {
+    -fx-text-fill: #c0392b;
+}
+
+.success {
+    -fx-text-fill: #1e7e34;
+}
+
+.scroll-pane, .scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}

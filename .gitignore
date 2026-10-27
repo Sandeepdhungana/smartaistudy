@@ -1,0 +1,7 @@
+target/
+studysmart.db
+.idea/
+*.iml
+.vscode/
+~$*
+*.tmp
