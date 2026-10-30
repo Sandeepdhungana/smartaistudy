@@ -54,23 +54,54 @@ class QuizFlowTest {
     }
 
     @Test
-    void wrongNumberOfQuestionsIsRejected() {
+    void tooFewQuestionsEvenAfterRetryingIsRejected() {
         String nine = TestData.quizJson().replaceFirst("\\{\"question\": \"Statement 1\"[^}]*},", "");
         QuizGenerator generator = new QuizGenerator(TestData.fakeAi(nine), quizDAO);
-        assertThrows(AIServiceException.class, () -> generator.parseQuestions(nine));
+        assertThrows(AIServiceException.class,
+                () -> generator.generate(userId, materialId, "notes.pdf", TestData.pdfBytes()));
     }
 
     @Test
-    void invalidAnswerFromAiIsRejected() {
+    void shortReplyIsToppedUpByRetrying() throws Exception {
+        String firstSix = TestData.quizJson(1, 6);
+        String nextSix = TestData.quizJson(7, 6);
+        Quiz quiz = new QuizGenerator(TestData.fakeAi(firstSix, nextSix), quizDAO)
+                .generate(userId, materialId, "notes.pdf", TestData.pdfBytes());
+        assertEquals(10, quiz.getQuestions().size());
+    }
+
+    @Test
+    void extraQuestionsAreTrimmedToTenWithMixedDifficulty() throws Exception {
+        Quiz quiz = new QuizGenerator(TestData.fakeAi(TestData.quizJson(1, 15)), quizDAO)
+                .generate(userId, materialId, "notes.pdf", TestData.pdfBytes());
+        List<Question> questions = quiz.getQuestions();
+        assertEquals(10, questions.size());
+        assertEquals(3, questions.stream().filter(q -> q.getDifficulty().equals("hard")).count());
+        assertEquals(4, questions.stream().filter(q -> q.getDifficulty().equals("medium")).count());
+        assertEquals(3, questions.stream().filter(q -> q.getDifficulty().equals("easy")).count());
+    }
+
+    @Test
+    void invalidQuestionIsSkipped() throws Exception {
         String bad = TestData.quizJson().replaceFirst("\"True\"", "\"yes\"");
         QuizGenerator generator = new QuizGenerator(TestData.fakeAi(bad), quizDAO);
-        assertThrows(AIServiceException.class, () -> generator.parseQuestions(bad));
+        assertEquals(9, generator.parseQuestions(bad).size());
+    }
+
+    @Test
+    void bareArrayReplyIsAccepted() throws Exception {
+        String json = TestData.quizJson();
+        String bare = json.substring(json.indexOf('['), json.lastIndexOf(']') + 1);
+        QuizGenerator generator = new QuizGenerator(TestData.fakeAi(bare), quizDAO);
+        assertEquals(10, generator.parseQuestions(bare).size());
     }
 
     @Test
     void notJsonIsRejected() {
         QuizGenerator generator = new QuizGenerator(TestData.fakeAi("sorry"), quizDAO);
         assertThrows(AIServiceException.class, () -> generator.parseQuestions("sorry"));
+        assertThrows(AIServiceException.class,
+                () -> generator.generate(userId, materialId, "notes.pdf", TestData.pdfBytes()));
     }
 
     @Test

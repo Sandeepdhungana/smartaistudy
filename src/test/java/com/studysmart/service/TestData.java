@@ -16,16 +16,22 @@ class TestData {
 
     // Ten questions in mixed difficulty order, as the AI might return them
     static String quizJson() {
+        return quizJson(1, 10);
+    }
+
+    // `count` questions numbered from `first`, cycling through a mix of difficulties
+    static String quizJson(int first, int count) {
         String[] difficulties = {"easy", "hard", "medium", "easy", "hard", "medium", "medium", "easy", "hard", "medium"};
         StringBuilder sb = new StringBuilder("{\"questions\": [");
-        for (int i = 0; i < 10; i++) {
-            if (i > 0) {
+        for (int n = 0; n < count; n++) {
+            int i = first - 1 + n;
+            if (n > 0) {
                 sb.append(",");
             }
             sb.append("{\"question\": \"Statement ").append(i + 1).append("\", ")
               .append("\"answer\": \"").append(i % 2 == 0 ? "True" : "false").append("\", ")
               .append("\"topic\": \"Topic ").append(i % 3).append("\", ")
-              .append("\"difficulty\": \"").append(difficulties[i]).append("\"}");
+              .append("\"difficulty\": \"").append(difficulties[i % difficulties.length]).append("\"}");
         }
         return sb.append("]}").toString();
     }
@@ -35,16 +41,23 @@ class TestData {
         return "%PDF-1.4\n%%EOF\n".getBytes(StandardCharsets.US_ASCII);
     }
 
-    static OpenAIClient fakeAi(String reply) {
+    // Gives each reply in turn, then keeps repeating the last one
+    static OpenAIClient fakeAi(String... replies) {
         return new OpenAIClient() {
+            private int calls = 0;
+
+            private String next() {
+                return replies[Math.min(calls++, replies.length - 1)];
+            }
+
             @Override
             public String ask(String instructions, String content, boolean jsonOutput) {
-                return reply;
+                return next();
             }
 
             @Override
             public String askAboutPdf(String instructions, String fileName, byte[] pdf, boolean jsonOutput) {
-                return reply;
+                return next();
             }
         };
     }
