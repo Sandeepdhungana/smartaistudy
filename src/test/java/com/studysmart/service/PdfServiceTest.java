@@ -1,17 +1,14 @@
 package com.studysmart.service;
 
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,43 +21,38 @@ class PdfServiceTest {
 
     @Test
     void noFileIsRejected() {
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> pdfService.extractText(null));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> pdfService.readPdf(null));
         assertEquals("Please upload a PDF file.", e.getMessage());
     }
 
     @Test
     void nonPdfIsRejected() throws Exception {
         File txt = Files.writeString(tempDir.resolve("notes.txt"), "hello").toFile();
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> pdfService.extractText(txt));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> pdfService.readPdf(txt));
         assertTrue(e.getMessage().startsWith("Invalid file type"));
     }
 
     @Test
-    void emptyPdfIsRejected() throws Exception {
-        File pdf = tempDir.resolve("empty.pdf").toFile();
-        try (PDDocument doc = new PDDocument()) {
-            doc.addPage(new PDPage());
-            doc.save(pdf);
-        }
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> pdfService.extractText(pdf));
-        assertEquals("The file contains no readable study material.", e.getMessage());
+    void renamedNonPdfIsRejected() throws Exception {
+        File fake = Files.writeString(tempDir.resolve("notes.pdf"), "just some text").toFile();
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> pdfService.readPdf(fake));
+        assertEquals("The file could not be read as a PDF.", e.getMessage());
     }
 
     @Test
-    void textIsExtracted() throws Exception {
-        File pdf = tempDir.resolve("notes.pdf").toFile();
-        try (PDDocument doc = new PDDocument()) {
-            PDPage page = new PDPage();
-            doc.addPage(page);
-            try (PDPageContentStream stream = new PDPageContentStream(doc, page)) {
-                stream.beginText();
-                stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-                stream.newLineAtOffset(50, 700);
-                stream.showText("The mitochondria is the site of respiration.");
-                stream.endText();
-            }
-            doc.save(pdf);
+    void oversizedPdfIsRejected() throws Exception {
+        File big = tempDir.resolve("big.pdf").toFile();
+        try (RandomAccessFile raf = new RandomAccessFile(big, "rw")) {
+            raf.setLength(PdfService.MAX_BYTES + 1);
         }
-        assertTrue(pdfService.extractText(pdf).contains("mitochondria"));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> pdfService.readPdf(big));
+        assertTrue(e.getMessage().startsWith("The PDF is too large"));
+    }
+
+    @Test
+    void pdfBytesAreReturned() throws Exception {
+        byte[] pdf = TestData.pdfBytes();
+        File file = Files.write(tempDir.resolve("notes.pdf"), pdf).toFile();
+        assertArrayEquals(pdf, pdfService.readPdf(file));
     }
 }

@@ -12,6 +12,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
+import java.util.Base64;
 
 public class OpenAIClient {
     private static final String API_URL = "https://api.openai.com/v1/chat/completions";
@@ -19,30 +20,49 @@ public class OpenAIClient {
 
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
     private final ObjectMapper mapper = new ObjectMapper();
-    private final String apiKey = System.getenv("OPENAI_API_KEY");
+    private final String apiKey = Config.get("OPENAI_API_KEY");
     private final String model;
 
     public OpenAIClient() {
-        String envModel = System.getenv("OPENAI_MODEL");
+        String envModel = Config.get("OPENAI_MODEL");
         model = (envModel == null || envModel.isBlank()) ? DEFAULT_MODEL : envModel;
     }
 
     public String ask(String instructions, String content, boolean jsonOutput) throws AIServiceException {
-        if (apiKey == null || apiKey.isBlank()) {
-            throw new AIServiceException("No OpenAI API key found. Set the OPENAI_API_KEY environment variable and restart the app.");
-        }
+        ObjectNode body = newRequest(instructions, jsonOutput);
+        body.withArrayProperty("messages").addObject().put("role", "user").put("content", content);
+        return send(body);
+    }
 
+    // Sends the PDF file itself so OpenAI reads both its text and its page images
+    public String askAboutPdf(String instructions, String fileName, byte[] pdf, boolean jsonOutput) throws AIServiceException {
+        ObjectNode body = newRequest(instructions, jsonOutput);
+        ArrayNode parts = body.withArrayProperty("messages").addObject().put("role", "user").putArray("content");
+        parts.addObject()
+                .put("type", "file")
+                .putObject("file")
+                .put("filename", fileName)
+                .put("file_data", "data:application/pdf;base64," + Base64.getEncoder().encodeToString(pdf));
+        return send(body);
+    }
+
+    private ObjectNode newRequest(String instructions, boolean jsonOutput) {
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
-        ArrayNode messages = body.putArray("messages");
-        messages.addObject().put("role", "system").put("content", instructions);
-        messages.addObject().put("role", "user").put("content", content);
+        body.putArray("messages").addObject().put("role", "system").put("content", instructions);
         if (jsonOutput) {
             body.putObject("response_format").put("type", "json_object");
         }
+        return body;
+    }
+
+    private String send(ObjectNode body) throws AIServiceException {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new AIServiceException("No OpenAI API key found. Add OPENAI_API_KEY=sk-... to the .env file in the project folder and restart the app.");
+        }
 
         HttpRequest request = HttpRequest.newBuilder(URI.create(API_URL))
-                .timeout(Duration.ofSeconds(90))
+                .timeout(Duration.ofSeconds(120))
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString()))

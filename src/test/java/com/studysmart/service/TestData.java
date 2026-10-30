@@ -4,6 +4,7 @@ import com.studysmart.db.Database;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
 class TestData {
@@ -29,10 +30,20 @@ class TestData {
         return sb.append("]}").toString();
     }
 
+    // Just enough of a PDF to pass the header check; the fake AI never reads it
+    static byte[] pdfBytes() {
+        return "%PDF-1.4\n%%EOF\n".getBytes(StandardCharsets.US_ASCII);
+    }
+
     static OpenAIClient fakeAi(String reply) {
         return new OpenAIClient() {
             @Override
             public String ask(String instructions, String content, boolean jsonOutput) {
+                return reply;
+            }
+
+            @Override
+            public String askAboutPdf(String instructions, String fileName, byte[] pdf, boolean jsonOutput) {
                 return reply;
             }
         };

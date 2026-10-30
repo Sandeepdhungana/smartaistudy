@@ -17,7 +17,7 @@ public class QuizGenerator {
     public static final int QUESTION_COUNT = 10;
 
     private static final String QUIZ_PROMPT =
-            "You are a teacher writing a revision quiz. Using ONLY the study material given by the user, "
+            "You are a teacher writing a revision quiz. Using ONLY the study material in the PDF given by the user, "
             + "write exactly 10 true or false questions: 3 hard, 4 medium and 3 easy. "
             + "Return JSON in exactly this format: "
             + "{\"questions\": [{\"question\": \"statement to judge\", \"answer\": \"true or false\", "
@@ -32,8 +32,8 @@ public class QuizGenerator {
         this.quizDAO = quizDAO;
     }
 
-    public Quiz generate(int userId, int materialId, String studyText) throws AIServiceException, SQLException {
-        String reply = ai.ask(QUIZ_PROMPT, studyText, true);
+    public Quiz generate(int userId, int materialId, String fileName, byte[] pdf) throws AIServiceException, SQLException {
+        String reply = ai.askAboutPdf(QUIZ_PROMPT, fileName, pdf, true);
         ArrayList<Question> questions = parseQuestions(reply);
         sortByDifficulty(questions);
 

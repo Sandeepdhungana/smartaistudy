@@ -2,6 +2,7 @@ package com.studysmart.db;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
@@ -37,7 +38,6 @@ public class Database {
                 + "material_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "user_id INTEGER NOT NULL REFERENCES Users(user_id),"
                 + "file_name TEXT NOT NULL,"
-                + "extracted_text TEXT NOT NULL,"
                 + "upload_date TEXT NOT NULL)",
             "CREATE TABLE IF NOT EXISTS Quizzes ("
                 + "quiz_id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -69,6 +69,22 @@ public class Database {
             for (String sql : tables) {
                 st.execute(sql);
             }
+            dropExtractedTextColumn(st);
+        }
+    }
+
+    // Databases made before PDFs were sent straight to OpenAI still have this unused column
+    private void dropExtractedTextColumn(Statement st) throws SQLException {
+        boolean found = false;
+        try (ResultSet rs = st.executeQuery("PRAGMA table_info(StudyMaterials)")) {
+            while (rs.next()) {
+                if ("extracted_text".equals(rs.getString("name"))) {
+                    found = true;
+                }
+            }
+        }
+        if (found) {
+            st.execute("ALTER TABLE StudyMaterials DROP COLUMN extracted_text");
         }
     }
 }

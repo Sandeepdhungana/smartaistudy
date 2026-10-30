@@ -5,3 +5,5 @@ studysmart.db
 .vscode/
 ~$*
 *.tmp
+nbactions.xml
+.env

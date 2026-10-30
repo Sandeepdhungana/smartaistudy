@@ -114,9 +114,9 @@ public class DashboardScreen {
         int userId = app.getCurrentUser().getId();
         setBusy(true, "Reading your PDF and generating questions...");
         app.runTask(() -> {
-            String text = app.getPdfService().extractText(file);
-            StudyMaterial material = app.getMaterialDAO().insert(userId, file.getName(), text);
-            Quiz quiz = app.getQuizGenerator().generate(userId, material.getId(), text);
+            byte[] pdf = app.getPdfService().readPdf(file);
+            StudyMaterial material = app.getMaterialDAO().insert(userId, file.getName());
+            Quiz quiz = app.getQuizGenerator().generate(userId, material.getId(), file.getName(), pdf);
             quiz.setFileName(file.getName());
             return quiz;
         }, quiz -> {

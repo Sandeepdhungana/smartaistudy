@@ -15,18 +15,17 @@ public class MaterialDAO {
         this.db = db;
     }
 
-    public StudyMaterial insert(int userId, String fileName, String text) throws SQLException {
-        String sql = "INSERT INTO StudyMaterials (user_id, file_name, extracted_text, upload_date) VALUES (?, ?, ?, ?)";
+    public StudyMaterial insert(int userId, String fileName) throws SQLException {
+        String sql = "INSERT INTO StudyMaterials (user_id, file_name, upload_date) VALUES (?, ?, ?)";
         try (Connection conn = db.connect();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, userId);
             ps.setString(2, fileName);
-            ps.setString(3, text);
-            ps.setString(4, Database.now());
+            ps.setString(3, Database.now());
             ps.executeUpdate();
             ResultSet keys = ps.getGeneratedKeys();
             keys.next();
-            return new StudyMaterial(keys.getInt(1), userId, fileName, text);
+            return new StudyMaterial(keys.getInt(1), userId, fileName);
         }
     }
 }

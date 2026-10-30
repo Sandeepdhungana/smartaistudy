@@ -34,13 +34,13 @@ class QuizFlowTest {
         quizDAO = new QuizDAO(db);
         User user = new UserDAO(db).insert("sam", "sam@example.com", "hash");
         userId = user.getId();
-        materialId = new MaterialDAO(db).insert(userId, "notes.pdf", "Some notes").getId();
+        materialId = new MaterialDAO(db).insert(userId, "notes.pdf").getId();
     }
 
     @Test
     void quizIsSortedHardToEasyAndSaved() throws Exception {
         QuizGenerator generator = new QuizGenerator(TestData.fakeAi(TestData.quizJson()), quizDAO);
-        Quiz quiz = generator.generate(userId, materialId, "Some notes");
+        Quiz quiz = generator.generate(userId, materialId, "notes.pdf", TestData.pdfBytes());
 
         List<Question> saved = quizDAO.findQuestions(quiz.getId());
         assertEquals(10, saved.size());
@@ -76,7 +76,7 @@ class QuizFlowTest {
     @Test
     void answersAreMarkedAndScoreSaved() throws Exception {
         Quiz quiz = new QuizGenerator(TestData.fakeAi(TestData.quizJson()), quizDAO)
-                .generate(userId, materialId, "Some notes");
+                .generate(userId, materialId, "notes.pdf", TestData.pdfBytes());
 
         // Answer the first 7 correctly and the last 3 wrongly
         List<String> answers = new ArrayList<>();
@@ -97,7 +97,7 @@ class QuizFlowTest {
     @Test
     void invalidAnswerIsNotEvaluated() throws Exception {
         Quiz quiz = new QuizGenerator(TestData.fakeAi(TestData.quizJson()), quizDAO)
-                .generate(userId, materialId, "Some notes");
+                .generate(userId, materialId, "notes.pdf", TestData.pdfBytes());
         List<String> answers = new ArrayList<>(List.of("true", "false", "true", "false", "true",
                 "false", "true", "false", "true", "yes"));
         assertThrows(IllegalArgumentException.class,
@@ -107,7 +107,7 @@ class QuizFlowTest {
     @Test
     void studyPlanUsesWeakTopicsAndIsSaved() throws Exception {
         Quiz quiz = new QuizGenerator(TestData.fakeAi(TestData.quizJson()), quizDAO)
-                .generate(userId, materialId, "Some notes");
+                .generate(userId, materialId, "notes.pdf", TestData.pdfBytes());
         List<String> answers = new ArrayList<>();
         for (Question q : quiz.getQuestions()) {
             answers.add(q.getCorrectAnswer().equals("true") ? "false" : "true");
